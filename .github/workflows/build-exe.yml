@@ -1,0 +1,55 @@
+# Sestaví KickChatCounter .exe na Windows (PyInstaller přes build_exe.py) a dá ho ke stažení
+# v záložce Actions → běh → Artifacts. Spouští se při pushi nebo ručně (Run workflow).
+name: Build exe
+
+on:
+  push:
+    paths:
+      - "kick_counter_gui.py"
+      - "build_exe.py"
+      - "requirements.txt"
+      - ".github/workflows/build-exe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write   # hotové exe se uloží do dist/ ve stejné větvi
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalace závislostí
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Sestavení exe
+        shell: pwsh
+        run: |
+          python build_exe.py
+          # jen právě sestavené exe (starší v dist/ zůstávají beze změny)
+          $new = Get-ChildItem dist\*.exe | Sort-Object LastWriteTime | Select-Object -Last 1
+          "NEW_EXE=dist/$($new.Name)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $new
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KickChatCounter-exe
+          path: ${{ env.NEW_EXE }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Uložení exe do dist/ (commit do stejné větve)
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -f "$env:NEW_EXE" kick_counter_gui.py
+          git commit -m "Build exe $(Get-Date -Format 'yyMMdd_HHmm') [skip ci]"
+          git push
