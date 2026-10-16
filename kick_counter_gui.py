@@ -19,7 +19,7 @@ import requests
 from curl_cffi import requests as cf_requests
 import websocket
 
-BUILD_VERSION = "261016.0000"
+BUILD_VERSION = "261016.1917"
 
 DEBUG = False
 
