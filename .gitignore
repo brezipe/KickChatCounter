@@ -1,0 +1,7 @@
+venv/
+build/
+dist/
+*.json
+*.spec
+__pycache__/
+.claude/
